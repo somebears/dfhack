@@ -398,7 +398,6 @@ struct labor_info
     int priority() const { return config.ival(1); }
     void set_priority(int priority) { config.ival(1) = priority; }
 
-    bool is_unmanaged() const { return maximum_dwarfs() == MAX_DWARFS_UNMANAGED; }
     int maximum_dwarfs() const { return config.ival(2); }
     void set_maximum_dwarfs(int maximum_dwarfs) { config.ival(2) = maximum_dwarfs; }
 
@@ -2248,14 +2247,19 @@ void print_labor(df::unit_labor labor, color_ostream &out)
 
 df::unit_labor lookup_labor_by_name(std::string name)
 {
-    // We should accept incorrect casing, there is no ambiguity.
-    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+    // This is not Unicode-safe, but so far Toady hasn't used
+    // any non-ASCII Unicode in labor names so it should be ok
+
+    transform(name.begin(), name.end(), name.begin(), ::toupper);
+
+    df::unit_labor labor = df::unit_labor::NONE;
 
     FOR_ENUM_ITEMS(unit_labor, test_labor)
     {
         if (name == ENUM_KEY_STR(unit_labor, test_labor))
         {
-            return test_labor;
+            labor = test_labor;
+            break;
         }
     }
 
