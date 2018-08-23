@@ -247,12 +247,17 @@ command_result df_probe (color_ostream &out, vector <string> & parameters)
 
     const char* surroundings[] = { "Serene", "Mirthful", "Joyous Wilds", "Calm", "Wilderness", "Untamed Wilds", "Sinister", "Haunted", "Terrifying" };
 
+    df::coord2d region(Maps::getTileBiomeRgn(df::coord(cursorX, cursorY, cursorZ)));
+    df::biome_type biome_type = Maps::GetBiomeType(region.x, region.y);
+    
     // biome, geolayer
     out << "biome: " << des.bits.biome << " (" <<
+        ENUM_KEY_STR ( biome_type, biome_type) << ", " <<
         "region id=" << biome->region_id << ", " <<
         surroundings[surr] << ", " <<
         "savagery " << biome->savagery << ", " <<
         "evilness " << biome->evilness << ")" << std::endl;
+
     out << "geolayer: " << des.bits.geolayer_index
         << std::endl;
     int16_t base_rock = mc.layerMaterialAt(cursor);
