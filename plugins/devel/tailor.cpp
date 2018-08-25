@@ -47,6 +47,8 @@ const char *usage = (
     "    Enable the plugin.\n"
     "  tailor disable\n"
     "    Disable the plugin.\n"
+    "  tailor use LEATHER,CLOTH,YARN,SILK\n"
+    "    Use these materials, in this order, when requesting additional clothing\n"
     "  tailor status\n"
     "    Display plugin status\n"
     "\n"
@@ -131,7 +133,8 @@ void do_scan(color_ostream& out)
         int ss = i->getStackSize();
 
         if (mat.material)
-        {
+        { 
+
             if (mat.material->flags.is_set(df::material_flags::SILK))
                 silk += ss;
             else if (mat.material->flags.is_set(df::material_flags::THREAD_PLANT))
@@ -266,6 +269,7 @@ void do_scan(color_ostream& out)
         orders[make_tuple(itemTypeMap[ty], sub, size)] += count;
     }
 
+
     // scan orders
 
     for (auto o : world->manager_orders)
@@ -276,7 +280,7 @@ void do_scan(color_ostream& out)
 
         auto sub = o->item_subtype;
         int race = o->hist_figure_id;
-        if (race == -1)
+        if (race == -1) 
             continue; // -1 means that the race of the worker will determine the size made; we must ignore these jobs
 
         int size = world->raws.creatures.all[race]->adultsize;
@@ -348,6 +352,7 @@ void do_scan(color_ostream& out)
             {
                 out.print("Cannot make %s, skipped\n", name_p);
                 continue; // this civilization does not know how to make this item, so sorry
+
             }
 
             switch (ty) {
@@ -403,7 +408,9 @@ void do_scan(color_ostream& out)
                 world->raws.creatures.all[order->hist_figure_id]->name[1]
             );
         }
+
     }
+
 }
 
 #define DELTA_TICKS 600
@@ -442,6 +449,12 @@ DFhackCExport command_result plugin_onupdate(color_ostream &out)
     return CR_OK;
 }
 
+static bool tailor_set_materials(string parameter)
+{
+    return false;
+}
+
+
 static command_result tailor_cmd(color_ostream &out, vector <string> & parameters) {
     bool desired = enabled;
     if (parameters.size() == 1)
@@ -469,8 +482,13 @@ static command_result tailor_cmd(color_ostream &out, vector <string> & parameter
             return CR_WRONG_USAGE;
         }
     }
-    else
-        return CR_WRONG_USAGE;
+    else if (parameters.size() == 2 && parameters[1] == "use")
+    {
+        return (
+            tailor_set_materials(parameters[2]) ?
+            CR_OK : CR_WRONG_USAGE
+            );
+    }
 
     out.print("Tailor is %s %s.\n", (desired == enabled)? "currently": "now", desired? "enabled": "disabled");
     enabled = desired;
