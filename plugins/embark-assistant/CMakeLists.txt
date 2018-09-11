@@ -1,6 +1,6 @@
 project(embark-assistant)
 # A list of source files
-set(PROJECT_SRCS
+SET(PROJECT_SRCS
     embark-assistant.cpp
     finder_ui.cpp
     help_ui.cpp
@@ -10,7 +10,7 @@ set(PROJECT_SRCS
     survey.cpp
 )
 # A list of headers
-set(PROJECT_HDRS
+SET(PROJECT_HDRS
     defs.h
     embark-assistant.h
     finder_ui.h
