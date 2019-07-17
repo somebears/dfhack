@@ -346,10 +346,9 @@ if(APPLE)
         endif()
     endif()
 
-    if(NOT EXTERNAL_LIBSTDCXX)
-        install(PROGRAMS ${LIBSTDCXX_DOWNLOAD_DIR}/libstdc++.6.dylib
-            DESTINATION ./hack/)
-    endif()
+    install(PROGRAMS ${LIBSTDCXX_DOWNLOAD_DIR}/libstdc++.6.dylib
+        DESTINATION ./hack/)
+
 endif()
 
 #### expose depends ####
@@ -540,9 +539,3 @@ endif()
 
 # Store old build arch
 set(DFHACK_BUILD_ARCH_PREV "${DFHACK_BUILD_ARCH}" CACHE STRING "Previous build architecture" FORCE)
-
-option(BUILD_SIZECHECK "Build the sizecheck library, for research" OFF)
-if(BUILD_SIZECHECK)
-    add_subdirectory(depends/sizecheck)
-    add_dependencies(dfhack sizecheck)
-endif()
