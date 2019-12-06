@@ -1,6 +1,8 @@
-if(UNIX)
-    dfhack_plugin(vectors vectors.cpp)
-endif()
+IF(UNIX)
+DFHACK_PLUGIN(vectors vectors.cpp)
+ENDIF()
+
+INCLUDE(FindThreads)
 
 ADD_DEFINITIONS(-DDEV_PLUGIN)
 DFHACK_PLUGIN(autofarm autofarm.cpp)
