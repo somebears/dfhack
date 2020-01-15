@@ -1,4 +1,9 @@
 // (un)designate matching plants for gathering/cutting
+// Known issue:
+// DF is capable of determining that a shrub has already been picked, leaving an unusable structure part
+// behind. This code does not perform such a check (as the location of the required information is
+// unknown to the writer of this comment). This leads to some shrubs being designated when they
+// shouldn't be, causing a plant gatherer to walk there and do nothing (except clearing the designation).
 #include <set>
 
 #include "Core.h"
@@ -79,7 +84,7 @@ selectability selectablePlant(const df::plant_raw *plant)
         return selectability::Selectable;
     }
 
-    for (size_t i = 0; i < plant->growths.size(); i++)
+    for (auto i = 0; i < plant->growths.size(); i++)
     {
         if (plant->growths[i]->item_type == df::item_type::SEEDS ||  //  Only trees have seed growths in vanilla, but raws can be modded...
             plant->growths[i]->item_type == df::item_type::PLANT_GROWTH)
@@ -89,7 +94,7 @@ selectability selectablePlant(const df::plant_raw *plant)
                  (growth_mat.material->flags.is_set(material_flags::EDIBLE_COOKED) ||
                   growth_mat.material->flags.is_set(material_flags::EDIBLE_RAW))) ||
                 (plant->growths[i]->item_type == df::item_type::PLANT_GROWTH &&
-                 growth_mat.material->flags.is_set(material_flags::LEAF_MAT)))  //  Will change name to STOCKPILE_PLANT_GROWTH any day now...
+                 growth_mat.material->flags.is_set(material_flags::STOCKPILE_PLANT_GROWTH)))
             {
                 if (*cur_year_tick >= plant->growths[i]->timing_1 &&
                     (plant->growths[i]->timing_2 == -1 ||
@@ -122,7 +127,7 @@ selectability selectablePlant(const df::plant_raw *plant)
                         outOfSeason = true;
                     }
                 }
-            }  */
+            }  */          
     }
 
     if (outOfSeason)
@@ -141,7 +146,7 @@ command_result df_getplants (color_ostream &out, vector <string> & parameters)
 {
     string plantMatStr = "";
     std::vector<selectability> plantSelections;
-    std::vector<size_t> collectionCount;
+    std::vector<uint16_t> collectionCount;
     set<string> plantNames;
     bool deselect = false, exclude = false, treesonly = false, shrubsonly = false, all = false, verbose = false;
 
@@ -150,12 +155,12 @@ command_result df_getplants (color_ostream &out, vector <string> & parameters)
     plantSelections.resize(world->raws.plants.all.size());
     collectionCount.resize(world->raws.plants.all.size());
 
-    for (size_t i = 0; i < plantSelections.size(); i++)
+    for (auto i = 0; i < plantSelections.size(); i++)
     {
         plantSelections[i] = selectability::Unselected;
         collectionCount[i] = 0;
     }
-
+    
     bool anyPlantsSelected = false;
 
     for (size_t i = 0; i < parameters.size(); i++)
@@ -211,17 +216,21 @@ command_result df_getplants (color_ostream &out, vector <string> & parameters)
             switch (plantSelections[i])
             {
             case selectability::Grass:
-                out.printerr("%s is a grass and cannot be gathered\n", plant->id.c_str());
+            {
+                out.printerr("%s is a Grass, and those can not be gathered\n", plant->id.c_str());
                 break;
+            }
 
             case selectability::Nonselectable:
+            {
                 out.printerr("%s does not have any parts that can be gathered\n", plant->id.c_str());
                 break;
-
+            }
             case selectability::OutOfSeason:
+            {
                 out.printerr("%s is out of season, with nothing that can be gathered now\n", plant->id.c_str());
                 break;
-
+            }
             case selectability::Selectable:
                 break;
 
@@ -239,7 +248,7 @@ command_result df_getplants (color_ostream &out, vector <string> & parameters)
         return CR_FAILURE;
     }
 
-    for (size_t i = 0; i < plantSelections.size(); i++)
+    for (auto i = 0; i < plantSelections.size(); i++)
     {
         if (plantSelections[i] == selectability::OutOfSeason ||
             plantSelections[i] == selectability::Selectable)
@@ -318,24 +327,23 @@ command_result df_getplants (color_ostream &out, vector <string> & parameters)
         }
         if (!deselect && Designations::markPlant(plant))
         {
-//            out.print("Designated %s at (%i, %i, %i), %d\n", world->raws.plants.all[plant->material]->id.c_str(), plant->pos.x, plant->pos.y, plant->pos.z, (int)i);
+//            out.print("Designated %s at (%i, %i, %i), %i\n", world->raws.plants.all[plant->material]->id.c_str(), plant->pos.x, plant->pos.y, plant->pos.z, i);
             collectionCount[plant->material]++;
             ++count;
         }
     }
     if (count)
-    {
         if (verbose)
         {
-            for (size_t i = 0; i < plantSelections.size(); i++)
+            for (auto i = 0; i < plantSelections.size(); i++)
             {
-                if (collectionCount[i] > 0)
-                    out.print("Updated %d %s designations.\n", (int)collectionCount[i], world->raws.plants.all[i]->id.c_str());
+                if (collectionCount [i] > 0)
+                    out.print("Updated %i %s designations.\n", collectionCount [i], world->raws.plants.all [i]->id.c_str());
             }
             out.print("\n");
         }
-    }
-    out.print("Updated %d plant designations.\n", (int)count);
+
+    out.print("Updated %d plant designations.\n", count);
 
     return CR_OK;
 }
@@ -348,11 +356,11 @@ DFhackCExport command_result plugin_init ( color_ostream &out, vector <PluginCom
         "  Specify the types of trees to cut down and/or shrubs to gather by their\n"
         "  plant IDs, separated by spaces.\n"
         "Options:\n"
-        "  -t - Tree: Select trees only (exclude shrubs)\n"
-        "  -s - Shrub: Select shrubs only (exclude trees)\n"
-        "  -c - Clear: Clear designations instead of setting them\n"
-        "  -x - eXcept: Apply selected action to all plants except those specified\n"
-        "  -a - All: Select every type of plant (obeys -t/-s)\n"
+        "  -t - Select trees only (exclude shrubs)\n"
+        "  -s - Select shrubs only (exclude trees)\n"
+        "  -c - Clear designations instead of setting them\n"
+        "  -x - Apply selected action to all plants except those specified\n"
+        "  -a - Select every type of plant (obeys -t/-s)\n"
         "  -v - Verbose: lists the number of (un)designations per plant\n"
         "Specifying both -t and -s will have no effect.\n"
         "If no plant IDs are specified, all valid plant IDs will be listed.\n"
